@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text-to-SQL 系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            margin-top: 20px;
+        }
+
+        .sql-display {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+
+        .summary {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .error {
+            background: #ffe7e7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #f44336;
+            color: #d32f2f;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .result-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .examples {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .examples h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .example-item {
+            margin: 8px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .example-item:hover {
+            background: #ffeaa7;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Text-to-SQL 系统</h1>
+            <p>基于 ChatGLM 的自然语言转 SQL 查询系统</p>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <h2>📝 输入问题</h2>
+                <div class="input-section">
+                    <div class="input-group">
+                        <label for="question">请输入您的问题（自然语言）：</label>
+                        <textarea id="question" rows="4" placeholder="例如：查询所有用户信息"></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="executeQuery()" id="submitBtn">执行查询</button>
+                        <button class="btn-secondary" onclick="clearAll()">清空</button>
+                    </div>
+                </div>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>正在处理中，请稍候...</p>
+                </div>
+
+                <div class="examples">
+                    <h3>💡 示例问题</h3>
+                    <div class="example-item" onclick="setExample('查询所有用户信息')">查询所有用户信息</div>
+                    <div class="example-item" onclick="setExample('查找价格高于5000的商品')">查找价格高于5000的商品</div>
+                    <div class="example-item" onclick="setExample('统计每个用户的订单总数')">统计每个用户的订单总数</div>
+                    <div class="example-item" onclick="setExample('查询所有订单的详细信息，包括用户名和商品名')">查询所有订单的详细信息，包括用户名和商品名</div>
+                    <div class="example-item" onclick="setExample('找出订单金额最高的订单详情')">找出订单金额最高的订单详情</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📊 查询结果</h2>
+                <div id="resultContainer">
+                    <p style="color: #999; text-align: center; padding: 40px;">
+                        查询结果将在这里显示...
+                    </p>
+                </div>
+            </div>
+
+            <div class="card full-width">
+                <h2>🔍 SQL 查询语句</h2>
+                <div id="sqlContainer">
+                    <p style="color: #999; text-align: center; padding: 20px;">
+                        生成的 SQL 语句将在这里显示...
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setExample(example) {
+            document.getElementById('question').value = example;
+        }
+
+        function clearAll() {
+            document.getElementById('question').value = '';
+            document.getElementById('resultContainer').innerHTML = 
+                '<p style="color: #999; text-align: center; padding: 40px;">查询结果将在这里显示...</p>';
+            document.getElementById('sqlContainer').innerHTML = 
+                '<p style="color: #999; text-align: center; padding: 20px;">生成的 SQL 语句将在这里显示...</p>';
+        }
+
+        async function executeQuery() {
+            const question = document.getElementById('question').value.trim();
+            
+            if (!question) {
+                alert('请输入问题！');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('resultContainer');
+            const sqlContainer = document.getElementById('sqlContainer');
+
+            // 显示加载状态
+            submitBtn.disabled = true;
+            loading.classList.add('active');
+            resultContainer.innerHTML = '<p style="color: #667eea; text-align: center; padding: 20px;">正在处理...</p>';
+            sqlContainer.innerHTML = '<p style="color: #667eea; text-align: center; padding: 20px;">正在生成 SQL...</p>';
+
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        history: []
+                    })
+                });
+
+                const data = await response.json();
+
+                // 隐藏加载状态
+                submitBtn.disabled = false;
+                loading.classList.remove('active');
+
+                // 显示 SQL
+                if (data.sql) {
+                    sqlContainer.innerHTML = `
+                        <div class="sql-display">${escapeHtml(data.sql)}</div>
+                    `;
+                } else {
+                    sqlContainer.innerHTML = '<p style="color: #999;">未生成 SQL 语句</p>';
+                }
+
+                // 显示结果
+                if (data.success) {
+                    let html = '';
+                    
+                    // 显示总结
+                    if (data.summary) {
+                        html += `<div class="summary">${escapeHtml(data.summary)}</div>`;
+                    }
+
+                    // 显示数据表
+                    if (data.result && data.result.success && data.result.data && data.result.data.length > 0) {
+                        const columns = data.result.columns;
+                        const rows = data.result.data;
+
+                        html += '<table><thead><tr>';
+                        columns.forEach(col => {
+                            html += `<th>${escapeHtml(col)}</th>`;
+                        });
+                        html += '</tr></thead><tbody>';
+
+                        rows.forEach(row => {
+                            html += '<tr>';
+                            columns.forEach(col => {
+                                html += `<td>${escapeHtml(String(row[col] ?? ''))}</td>`;
+                            });
+                            html += '</tr>';
+                        });
+
+                        html += '</tbody></table>';
+
+                        html += `<div class="result-info">共 ${data.result.row_count} 条记录</div>`;
+                    } else if (data.result && data.result.row_count === 0) {
+                        html += '<div class="result-info">查询完成，但没有找到匹配的数据。</div>';
+                    } else {
+                        html += '<div class="result-info">查询完成，但无数据显示。</div>';
+                    }
+
+                    resultContainer.innerHTML = html;
+                } else {
+                    // 显示错误
+                    resultContainer.innerHTML = `
+                        <div class="error">
+                            <strong>❌ 错误：</strong><br>
+                            ${escapeHtml(data.error || '未知错误')}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                submitBtn.disabled = false;
+                loading.classList.remove('active');
+                resultContainer.innerHTML = `
+                    <div class="error">
+                        <strong>❌ 网络错误：</strong><br>
+                        ${escapeHtml(error.message)}
+                    </div>
+                `;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 支持回车键提交（Ctrl+Enter）
+        document.getElementById('question').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                executeQuery();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
